@@ -2,16 +2,17 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
     <name>data_logger</name>
-    <version>0.0.0</version>
-    <description>TODO: Package description</description>
-    <maintainer email="Andrew@Ealovega.dev">andy</maintainer>
-    <license>TODO: License declaration</license>
+    <version>0.1.0</version>
+    <description>Project Phoenix data logging node</description>
+    <maintainer email="avealov@umich.edu">Andrew Ealovega</maintainer>
+    <license>MIT</license>
 
     <buildtool_depend>ament_cmake</buildtool_depend>
 
     <depend>rclcpp</depend>
     <depend>ackermann_msgs</depend>
     <depend>sensor_msgs</depend>
+    <depend>message_filters</depend>
 
     <test_depend>ament_lint_auto</test_depend>
     <test_depend>ament_cmake_flake8</test_depend>

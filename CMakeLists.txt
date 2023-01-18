@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 project(data_logger)
+include(FetchContent)
 
 if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wall -Wextra -Wpedantic)
@@ -10,6 +11,8 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(ackermann_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(message_filters REQUIRED)
+find_package(std_msgs REQUIRED)
 
 add_executable(data_logger src/data_logger.cpp src/data_logger_node.cpp)
 target_include_directories(data_logger PUBLIC
@@ -21,6 +24,8 @@ ament_target_dependencies(
         rclcpp
         ackermann_msgs
         sensor_msgs
+        message_filters
+        std_msgs
 )
 
 install(TARGETS data_logger
