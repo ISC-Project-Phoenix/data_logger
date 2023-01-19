@@ -1,13 +1,17 @@
 #pragma once
 
 #include <filesystem>
+#include <fstream>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "ackermann_msgs/msg/ackermann_drive.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "message_filters/sync_policies/approximate_time.h"
 
 namespace dl {
+    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, ackermann_msgs::msg::AckermannDrive> sync_policy;
+
     class DataLoggerNode : public rclcpp::Node {
     private:
         /// Path to the containing data folder, not the folder we are writing images to.
@@ -15,16 +19,13 @@ namespace dl {
         /// Path to the folder we are actually writing images to.
         std::filesystem::path data_folder;
 
-        /// Image stream
-        rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub;
-        /// Ackermann odom stream
-        rclcpp::Subscription<ackermann_msgs::msg::AckermannDrive>::SharedPtr ack_sub;
-
         /// Publishes current data_folder
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr path_pub;
-
-        //TODO add file handle for csv
     public:
         DataLoggerNode(const rclcpp::NodeOptions &options);
+
+        /// Handles collected training data. This image and state should be as synced as possible.
+        void handle_training_data(sensor_msgs::msg::Image::ConstSharedPtr image,
+                                  ackermann_msgs::msg::AckermannDrive::ConstSharedPtr state);
     };
 }
