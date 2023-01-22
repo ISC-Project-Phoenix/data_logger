@@ -1,7 +1,8 @@
 #include <cstdio>
+
 #include "data_logger/data_logger_node.hpp"
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
     rclcpp::executors::SingleThreadedExecutor exec;
     rclcpp::NodeOptions options;

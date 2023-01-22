@@ -1,15 +1,15 @@
 #include "data_logger/data_logger_node.hpp"
+
 #include "message_filters/subscriber.h"
 #include "message_filters/time_synchronizer.h"
 
 using namespace message_filters;
 using namespace std::placeholders;
 
-dl::DataLoggerNode::DataLoggerNode(const rclcpp::NodeOptions &options)
-        : Node("data_logger", options) {
+dl::DataLoggerNode::DataLoggerNode(const rclcpp::NodeOptions& options) : Node("data_logger", options) {
     // Filter wraps our subscriptions
     auto image_sub = Subscriber<sensor_msgs::msg::Image>(this,
-                                                         "/camera/mid/rgb"); //TODO make sure this is the correct QoS
+                                                         "/camera/mid/rgb");  //TODO make sure this is the correct QoS
     auto ack_sub = Subscriber<ackermann_msgs::msg::AckermannDrive>(this, "/odom_ack");
 
     // Approx sync the topics
