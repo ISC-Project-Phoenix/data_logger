@@ -2,15 +2,22 @@
 
 #include <chrono>
 
+#include "cv_bridge/cv_bridge.h"
 #include "message_filters/subscriber.h"
 #include "message_filters/time_synchronizer.h"
+#include "opencv2/opencv.hpp"
 #include "rclcpp/qos.hpp"
 
 using namespace message_filters;
 using namespace std::placeholders;
 using namespace std::literals::string_literals;
-
+//TODO test with data and write doctor
 dl::DataLoggerNode::DataLoggerNode(const rclcpp::NodeOptions& options) : Node("data_logger", options) {
+    // Random configs
+    this->max_brake_speed = this->declare_parameter<float>("max_brake_speed", -10.0);
+    this->max_throttle_speed = this->declare_parameter<float>("max_brake_speed", 10.0);
+    this->max_steering_rad = this->declare_parameter<float>("max_steering_rad", 2.0);
+
     // Filter wraps our subscriptions
     auto image_sub = Subscriber<sensor_msgs::msg::Image>(this, "/camera/mid/rgb");
     auto ack_sub = Subscriber<ackermann_msgs::msg::AckermannDrive>(this, "/odom_ack");
@@ -44,9 +51,23 @@ dl::DataLoggerNode::DataLoggerNode(const rclcpp::NodeOptions& options) : Node("d
     }
 }
 
-void dl::DataLoggerNode::handle_training_data(sensor_msgs::msg::Image::ConstSharedPtr image,
-                                              ackermann_msgs::msg::AckermannDrive::ConstSharedPtr state) {
-    //TODO write to CSV and save image
+void dl::DataLoggerNode::handle_training_data(const sensor_msgs::msg::Image::ConstSharedPtr& image,
+                                              const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr& state) {
+    // Neither message has a stamp, so stamp here
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+
+    std::stringstream time_str;
+    time_str << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d-%H-%M-%S-%f");
+    auto image_filename = time_str.str() + ".jpg";
+
+    // Write image to disk
+    auto cv_img = cv_bridge::toCvShare(image);
+    cv::imwrite(this->data_folder / image_filename, cv_img->image);
+
+    // Write to csv
+    auto csv_line = this->create_csv_line(image_filename, in_time_t, state);
+    csv << csv_line;
 }
 
 std::filesystem::path dl::DataLoggerNode::normalise_path(std::string_view s) {
@@ -76,6 +97,36 @@ void dl::DataLoggerNode::setup_data_folder() {
     this->csv = std::ofstream(csv_path);
     // Write headers
     csv << dl::DataLoggerNode::HEADERS;
+}
+
+std::string dl::DataLoggerNode::create_csv_line(
+    const std::string_view& image_filename, std::time_t stamp,
+    const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr& state) const {
+    // Normalise values to 0-1 range
+    auto steering_angle = state->steering_angle / this->max_steering_rad;
+    float throttle, brake = 0;
+
+    // Handle throttle/brake ambiguity
+    if (state->acceleration > 0) {
+        throttle = state->acceleration / this->max_throttle_speed;
+    } else {
+        brake = state->acceleration / this->max_brake_speed;
+    }
+
+    auto velocity = state->speed;
+
+    // Create row
+    std::stringstream buf;
+
+    buf << image_filename << ',' << steering_angle << ',' << throttle << ',' << brake << ',' << stamp << ','
+        << velocity
+        // This is vel_x
+        << ',' << velocity;
+
+    // Remaining fields are currently unused, these are v_y, v_z, and xyz positions.
+    buf << "0,0,0,0,0 \n";
+
+    return buf.str();
 }
 
 // For testing

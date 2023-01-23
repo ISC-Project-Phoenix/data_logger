@@ -27,6 +27,15 @@ private:
     /// Handle to data csv
     std::ofstream csv;
 
+    /// Max steering wheel angle, in radians.
+    float max_steering_rad;
+
+    /// Speed that represents the throttle being pressed 100%.
+    float max_throttle_speed;
+
+    /// Speed that represents the brake being pressed 100%.
+    float max_brake_speed;
+
 public:
     /// CSV Headers
     static constexpr const char* HEADERS =
@@ -36,14 +45,18 @@ public:
     DataLoggerNode(const rclcpp::NodeOptions& options);
 
     /// Handles collected training data. This image and state should be as synced as possible.
-    void handle_training_data(sensor_msgs::msg::Image::ConstSharedPtr image,
-                              ackermann_msgs::msg::AckermannDrive::ConstSharedPtr state);
+    void handle_training_data(const sensor_msgs::msg::Image::ConstSharedPtr& image,
+                              const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr& state);
 
     /// Returns the absolute path to the passed string.
     static std::filesystem::path normalise_path(std::string_view s);
 
     /// Prepares the filesystem for logging, including creating directories and the csv.
     void setup_data_folder();
+
+    /// Formats data into a csv line.
+    std::string create_csv_line(const std::string_view& image_filename, std::time_t stamp,
+                                const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr& state) const;
 
     /// Returns the path to the data folder containing the run data folders.
     const std::filesystem::path& getOuterDataFolder() const;

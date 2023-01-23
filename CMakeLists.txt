@@ -13,6 +13,8 @@ find_package(ackermann_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV 4.2.0 REQUIRED)
 
 add_executable(data_logger src/data_logger.cpp src/data_logger_node.cpp)
 target_include_directories(data_logger PUBLIC
@@ -26,6 +28,8 @@ ament_target_dependencies(
         sensor_msgs
         message_filters
         std_msgs
+        cv_bridge
+        OpenCV
 )
 
 install(TARGETS data_logger
