@@ -36,8 +36,8 @@ dl::DataLoggerNode::DataLoggerNode(const rclcpp::NodeOptions& options) : Node("d
 
     // Publish path to the inner folder we just made, reliably
     {
-        this->path_pub =
-            this->create_publisher<std_msgs::msg::String>("/run_folder", rclcpp::QoS(1).keep_last(1).reliable());
+        this->path_pub = this->create_publisher<std_msgs::msg::String>(
+            "/run_folder", rclcpp::QoS(1).keep_last(1).reliable().transient_local());
         std_msgs::msg::String msg{};
         msg.data = this->data_folder.string();
         path_pub->publish(msg);
