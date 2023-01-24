@@ -11,8 +11,9 @@
 using namespace message_filters;
 using namespace std::placeholders;
 using namespace std::literals::string_literals;
+
 //TODO test with data and write doctor
-dl::DataLoggerNode::DataLoggerNode(const rclcpp::NodeOptions& options) : Node("data_logger", options) {
+dl::DataLoggerNode::DataLoggerNode(const rclcpp::NodeOptions &options) : Node("data_logger", options) {
     // Random configs
     this->max_brake_speed = this->declare_parameter<float>("max_brake_speed", -10.0);
     this->max_throttle_speed = this->declare_parameter<float>("max_brake_speed", 10.0);
@@ -25,7 +26,8 @@ dl::DataLoggerNode::DataLoggerNode(const rclcpp::NodeOptions& options) : Node("d
     // Approx sync the topics
     Synchronizer<sync_policy> sync{sync_policy(10), image_sub, ack_sub};
     sync.registerCallback(
-        std::bind(&dl::DataLoggerNode::handle_training_data, this, _1, _2));  //TODO do we need to save this in a field?
+            std::bind(&dl::DataLoggerNode::handle_training_data, this, _1,
+                      _2));  //TODO do we need to save this in a field?
 
     // Get path to outer data folder
     try {
@@ -44,15 +46,15 @@ dl::DataLoggerNode::DataLoggerNode(const rclcpp::NodeOptions& options) : Node("d
     // Publish path to the inner folder we just made, reliably
     {
         this->path_pub = this->create_publisher<std_msgs::msg::String>(
-            "/run_folder", rclcpp::QoS(1).keep_last(1).reliable().transient_local());
+                "/run_folder", rclcpp::QoS(1).keep_last(1).reliable().transient_local());
         std_msgs::msg::String msg{};
         msg.data = this->data_folder.string();
         path_pub->publish(msg);
     }
 }
 
-void dl::DataLoggerNode::handle_training_data(const sensor_msgs::msg::Image::ConstSharedPtr& image,
-                                              const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr& state) {
+void dl::DataLoggerNode::handle_training_data(const sensor_msgs::msg::Image::ConstSharedPtr &image,
+                                              const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr &state) {
     // Neither message has a stamp, so stamp here
     auto now = std::chrono::system_clock::now();
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
@@ -100,11 +102,11 @@ void dl::DataLoggerNode::setup_data_folder() {
 }
 
 std::string dl::DataLoggerNode::create_csv_line(
-    const std::string_view& image_filename, std::time_t stamp,
-    const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr& state) const {
+        const std::string_view &image_filename, std::time_t stamp,
+        const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr &state) const {
     // Normalise values to 0-1 range
     auto steering_angle = state->steering_angle / this->max_steering_rad;
-    float throttle, brake = 0;
+    float throttle = 0, brake = 0;
 
     // Handle throttle/brake ambiguity
     if (state->acceleration > 0) {
@@ -130,5 +132,6 @@ std::string dl::DataLoggerNode::create_csv_line(
 }
 
 // For testing
-const std::filesystem::path& dl::DataLoggerNode::getOuterDataFolder() const { return outer_data_folder; }
-const std::filesystem::path& dl::DataLoggerNode::getDataFolder() const { return data_folder; }
+const std::filesystem::path &dl::DataLoggerNode::getOuterDataFolder() const { return outer_data_folder; }
+
+const std::filesystem::path &dl::DataLoggerNode::getDataFolder() const { return data_folder; }
