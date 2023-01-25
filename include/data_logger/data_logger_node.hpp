@@ -39,6 +39,7 @@ private:
     // Queues we use to 'sync' messages
     std::list<sensor_msgs::msg::Image::SharedPtr> image_queue;
     std::list<ackermann_msgs::msg::AckermannDrive::SharedPtr> ack_queue;
+
 public:
     /// CSV Headers
     static constexpr const char* HEADERS =
