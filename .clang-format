@@ -22,7 +22,6 @@ BraceWrapping:
 BreakBeforeBraces: Custom
 ColumnLimit: 120
 DerivePointerAlignment: false
-SortIncludes: "CaseInsensitive"
 PointerAlignment: Left
 ReflowComments: false
 ...
