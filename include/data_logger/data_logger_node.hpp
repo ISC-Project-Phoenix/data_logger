@@ -9,7 +9,6 @@
 #include "std_msgs/msg/string.hpp"
 
 namespace dl {
-
 class DataLoggerNode : public rclcpp::Node {
 private:
     /// Path to the containing data folder, not the folder we are writing images to.
@@ -43,7 +42,8 @@ private:
 public:
     /// CSV Headers
     static constexpr const char* HEADERS =
-        "image_file_name, steering_angle, throttle, brake, linux_time, velocity, velocity_x, velocity_y, "
+        "image_file_name, steering_angle, throttle, brake, linux_time, velocity, velocity_x, "
+        "velocity_y, "
         "velocity_z, position_x, position_y, position_z \n";
 
     DataLoggerNode(const rclcpp::NodeOptions& options);
