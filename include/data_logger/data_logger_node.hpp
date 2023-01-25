@@ -4,14 +4,11 @@
 #include <fstream>
 
 #include "ackermann_msgs/msg/ackermann_drive.hpp"
-#include "message_filters/sync_policies/approximate_time.h"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "std_msgs/msg/string.hpp"
 
 namespace dl {
-typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, ackermann_msgs::msg::AckermannDrive>
-    sync_policy;
 
 class DataLoggerNode : public rclcpp::Node {
 private:
@@ -36,17 +33,30 @@ private:
     /// Speed that represents the brake being pressed 100%.
     float max_brake_speed;
 
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub;
+    rclcpp::Subscription<ackermann_msgs::msg::AckermannDrive>::SharedPtr ack_sub;
+
+    // Queues we use to 'sync' messages
+    std::list<sensor_msgs::msg::Image::SharedPtr> image_queue;
+    std::list<ackermann_msgs::msg::AckermannDrive::SharedPtr> ack_queue;
 public:
     /// CSV Headers
     static constexpr const char* HEADERS =
         "image_file_name, steering_angle, throttle, brake, linux_time, velocity, velocity_x, velocity_y, "
-        "velocity_z, position_x, position_y, position_z";
+        "velocity_z, position_x, position_y, position_z \n";
 
     DataLoggerNode(const rclcpp::NodeOptions& options);
 
-    /// Handles collected training data. This image and state should be as synced as possible.
-    void handle_training_data(const sensor_msgs::msg::Image::ConstSharedPtr& image,
-                              const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr& state);
+    /// Writes training data to disk. This image and state should be as synced as possible.
+    /// Note: this is currently measured to take about 25ms, so this is safe to call in a callback.
+    void handle_training_data(sensor_msgs::msg::Image::SharedPtr image,
+                              ackermann_msgs::msg::AckermannDrive::SharedPtr state);
+
+    /// Camera callback
+    void camera_cb(sensor_msgs::msg::Image::SharedPtr image);
+
+    /// Ackermann odom callback
+    void ack_cb(ackermann_msgs::msg::AckermannDrive::SharedPtr state);
 
     /// Returns the absolute path to the passed string.
     static std::filesystem::path normalise_path(std::string_view s);

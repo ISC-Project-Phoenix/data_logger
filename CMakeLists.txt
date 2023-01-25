@@ -26,7 +26,6 @@ ament_target_dependencies(
         rclcpp
         ackermann_msgs
         sensor_msgs
-        message_filters
         std_msgs
         cv_bridge
         OpenCV
