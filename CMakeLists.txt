@@ -20,14 +20,20 @@ target_include_directories(data_logger PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
 target_compile_features(data_logger PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
-ament_target_dependencies(
-        data_logger
+
+# Make deps a variable so they get linked to tests as well
+set(dependencies
         rclcpp
         ackermann_msgs
         sensor_msgs
         std_msgs
         cv_bridge
         OpenCV
+        )
+
+ament_target_dependencies(
+        data_logger
+        ${dependencies}
 )
 
 install(TARGETS data_logger
@@ -36,6 +42,12 @@ install(TARGETS data_logger
 if (BUILD_TESTING)
     find_package(ament_cmake_clang_format REQUIRED)
     ament_clang_format(CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
+
+    find_package(ament_cmake_gtest REQUIRED)
+
+    # Add unit tests
+    ament_add_gtest(dl_unit_tests tests/unit.cpp)
+    ament_target_dependencies(dl_unit_tests ${dependencies})
 endif ()
 
 ament_package()
