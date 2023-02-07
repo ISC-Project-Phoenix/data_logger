@@ -46,8 +46,14 @@ if (BUILD_TESTING)
     find_package(ament_cmake_gtest REQUIRED)
 
     # Add unit tests
-    ament_add_gtest(dl_unit_tests tests/unit.cpp)
-    ament_target_dependencies(dl_unit_tests ${dependencies})
+    ament_add_gtest_executable(${PROJECT_NAME}-test
+            tests/unit.cpp
+            src/data_logger_node.cpp
+            )
+    ament_target_dependencies(${PROJECT_NAME}-test ${dependencies})
+    target_include_directories(${PROJECT_NAME}-test PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:include>)
 endif ()
 
 ament_package()
