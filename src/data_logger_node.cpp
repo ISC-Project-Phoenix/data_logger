@@ -75,6 +75,11 @@ void dl::DataLoggerNode::ack_cb(const ackermann_msgs::msg::AckermannDrive::Share
 
 void dl::DataLoggerNode::handle_training_data(const sensor_msgs::msg::Image::SharedPtr image,
                                               const ackermann_msgs::msg::AckermannDrive::SharedPtr state) {
+    // Toss data if state has reported invalid data (this shouldn't happen, so this is mostly for reporting)
+    if (!this->validate_data(state)) {
+        return;
+    }
+
     // Neither message has a stamp, so stamp here
     auto now = std::chrono::system_clock::now();
     auto ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
