@@ -40,13 +40,14 @@ install(TARGETS data_logger
         DESTINATION lib/${PROJECT_NAME})
 
 if (BUILD_TESTING)
+    # Manually invoke clang format so it actually uses our file
     find_package(ament_cmake_clang_format REQUIRED)
     ament_clang_format(CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format)
 
     find_package(ament_cmake_gtest REQUIRED)
 
     # Add unit tests
-    ament_add_gtest_executable(${PROJECT_NAME}-test
+    ament_add_gtest(${PROJECT_NAME}-test
             tests/unit.cpp
             src/data_logger_node.cpp
             )

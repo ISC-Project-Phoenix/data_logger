@@ -12,10 +12,10 @@ namespace dl {
 class DataLoggerNode : public rclcpp::Node {
 private:
     /// Path to the containing data folder, not the folder we are writing images to.
-    std::filesystem::path outer_data_folder;
+    std::filesystem::path data_folder;
 
     /// Path to the folder we are actually writing images to.
-    std::filesystem::path data_folder;
+    std::filesystem::path run_folder;
 
     /// Publishes current data_folder
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr path_pub;
@@ -70,9 +70,9 @@ public:
                                 const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr& state) const;
 
     /// Returns the path to the data folder containing the run data folders.
-    const std::filesystem::path& getOuterDataFolder() const;
+    const std::filesystem::path& getDataFolder() const;
 
     /// Returns the path to this runs data folder.
-    const std::filesystem::path& getDataFolder() const;
+    const std::filesystem::path& getRunFolder() const;
 };
 }  // namespace dl
