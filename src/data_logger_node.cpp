@@ -123,8 +123,6 @@ void dl::DataLoggerNode::setup_data_folder() {
     auto csv_path = this->run_folder / (folder.str() + ".csv");
     RCLCPP_INFO(this->get_logger(), "Using csv path: %s", csv_path.string().c_str());
     this->csv = std::ofstream(csv_path);
-    // Write headers
-    csv << dl::DataLoggerNode::HEADERS;
 }
 
 std::string dl::DataLoggerNode::create_csv_line(

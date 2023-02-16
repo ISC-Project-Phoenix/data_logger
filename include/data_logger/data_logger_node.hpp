@@ -41,7 +41,7 @@ private:
 
 public:
     /// CSV Headers
-    static constexpr const char* HEADERS =
+    [[maybe_unused]] static constexpr const char* HEADERS =
         "image_file_name, steering_angle, throttle, brake, linux_time, velocity, velocity_x, "
         "velocity_y, "
         "velocity_z, position_x, position_y, position_z \n";
