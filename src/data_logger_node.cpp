@@ -15,11 +15,17 @@ dl::DataLoggerNode::DataLoggerNode(const rclcpp::NodeOptions& options) : Node("d
     this->max_throttle_speed = this->declare_parameter<float>("max_throttle_speed", 10.0);
     this->max_steering_rad = this->declare_parameter<float>("max_steering_rad", 2.0);
 
-    image_sub = this->create_subscription<sensor_msgs::msg::Image>("/camera/mid/rgb", rclcpp::QoS(10).reliable(),
+    this->ack_cb_group = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+
+    image_sub = this->create_subscription<sensor_msgs::msg::Image>("/camera/mid/rgb", rclcpp::QoS(3).reliable(),
                                                                    std::bind(&DataLoggerNode::camera_cb, this, _1));
 
-    ack_sub = this->create_subscription<ackermann_msgs::msg::AckermannDrive>(
-        "/odom_ack", rclcpp::SensorDataQoS{}, std::bind(&DataLoggerNode::ack_cb, this, _1));
+    {
+        rclcpp::SubscriptionOptions ack_opts;
+        ack_opts.callback_group = this->ack_cb_group;
+        ack_sub = this->create_subscription<ackermann_msgs::msg::AckermannDrive>(
+            "/odom_ack", rclcpp::QoS(1).best_effort(), std::bind(&DataLoggerNode::ack_cb, this, _1), ack_opts);
+    }
 
     // Get path to outer data folder
     try {
@@ -46,37 +52,26 @@ dl::DataLoggerNode::DataLoggerNode(const rclcpp::NodeOptions& options) : Node("d
 }
 
 void dl::DataLoggerNode::camera_cb(const sensor_msgs::msg::Image::SharedPtr image) {
-    // Bound queue size since images can get very big
-    if (image_queue.size() > 10) {
-        // Clearing makes more sense for us since we don't want to hold old images, just buffer images so that IO doesn't cause too much data loss
-        this->image_queue.clear();
+    // Create a copy of the current command so that it can keep updating in a different thread while we write the image.
+    ackermann_msgs::msg::AckermannDrive command{};
+    {
+        std::unique_lock lk{this->current_command_mutex};
+        command = this->current_command;
     }
 
-    this->image_queue.push_back(image);
-
-    // Write to disk when both queues have a message to write
-    if (!this->image_queue.empty() && !this->ack_queue.empty()) {
-        this->handle_training_data(image_queue.front(), ack_queue.front());
-        image_queue.pop_front();
-        ack_queue.pop_front();
-    }
+    this->handle_training_data(image, command);
 }
 
 void dl::DataLoggerNode::ack_cb(const ackermann_msgs::msg::AckermannDrive::SharedPtr state) {
-    this->ack_queue.push_back(state);
-
-    // Write to disk when both queues have a message to write
-    if (!this->image_queue.empty() && !this->ack_queue.empty()) {
-        this->handle_training_data(image_queue.front(), ack_queue.front());
-        image_queue.pop_front();
-        ack_queue.pop_front();
-    }
+    // Just update the command as fast as possible, since odom comes in quick
+    std::unique_lock lk{this->current_command_mutex};
+    this->current_command = *state;
 }
 
 void dl::DataLoggerNode::handle_training_data(const sensor_msgs::msg::Image::SharedPtr image,
-                                              const ackermann_msgs::msg::AckermannDrive::SharedPtr state) {
+                                              const ackermann_msgs::msg::AckermannDrive state) {
     // Toss data if state has reported invalid data (this shouldn't happen, so this is mostly for reporting)
-    if (!this->validate_data(state)) {
+    if (!this->validate_data(&state)) {
         return;
     }
 
@@ -125,21 +120,20 @@ void dl::DataLoggerNode::setup_data_folder() {
     this->csv = std::ofstream(csv_path);
 }
 
-std::string dl::DataLoggerNode::create_csv_line(
-    const std::string_view& image_filename, std::time_t stamp,
-    const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr& state) const {
+std::string dl::DataLoggerNode::create_csv_line(const std::string_view& image_filename, std::time_t stamp,
+                                                const ackermann_msgs::msg::AckermannDrive& state) const {
     // Normalise values to 0-1 range
-    auto steering_angle = state->steering_angle / this->max_steering_rad;
+    auto steering_angle = state.steering_angle / this->max_steering_rad;
     float throttle = 0, brake = 0;
 
     // Handle throttle/brake ambiguity
-    if (state->acceleration > 0) {
-        throttle = state->acceleration / this->max_throttle_speed;
-    } else if (state->acceleration < 0) {
-        brake = state->acceleration / this->max_brake_speed;
+    if (state.acceleration > 0) {
+        throttle = state.acceleration / this->max_throttle_speed;
+    } else if (state.acceleration < 0) {
+        brake = state.acceleration / this->max_brake_speed;
     }
 
-    auto velocity = state->speed;
+    auto velocity = state.speed;
 
     // Create row
     std::stringstream buf;

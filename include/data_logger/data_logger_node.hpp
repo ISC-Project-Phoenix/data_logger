@@ -35,9 +35,12 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub;
     rclcpp::Subscription<ackermann_msgs::msg::AckermannDrive>::SharedPtr ack_sub;
 
-    // Queues we use to 'sync' messages
-    std::list<sensor_msgs::msg::Image::SharedPtr> image_queue;
-    std::list<ackermann_msgs::msg::AckermannDrive::SharedPtr> ack_queue;
+    /// Last received command, considered the current active command
+    ackermann_msgs::msg::AckermannDrive current_command;
+    std::mutex current_command_mutex;
+
+    /// Runs ack odom setting in the background so it doesn't get starved
+    rclcpp::CallbackGroup::SharedPtr ack_cb_group;
 
 public:
     /// CSV Headers
@@ -50,8 +53,7 @@ public:
 
     /// Writes training data to disk. This image and state should be as synced as possible.
     /// Note: this is currently measured to take about 25ms, so this is safe to call in a callback.
-    void handle_training_data(sensor_msgs::msg::Image::SharedPtr image,
-                              ackermann_msgs::msg::AckermannDrive::SharedPtr state);
+    void handle_training_data(sensor_msgs::msg::Image::SharedPtr image, ackermann_msgs::msg::AckermannDrive state);
 
     /// Camera callback
     void camera_cb(sensor_msgs::msg::Image::SharedPtr image);
@@ -67,7 +69,7 @@ public:
 
     /// Formats data into a csv line. Data is assumed to be valid.
     std::string create_csv_line(const std::string_view& image_filename, std::time_t stamp,
-                                const ackermann_msgs::msg::AckermannDrive::ConstSharedPtr& state) const;
+                                const ackermann_msgs::msg::AckermannDrive& state) const;
 
     /// Checks if data is in a valid state for writing to the CSV. Returns true if valid.
     /// This function is generic across pointers to AckermannDrive.
@@ -94,7 +96,7 @@ bool dl::DataLoggerNode::validate_data(const T& state) const {
     } else if (state->acceleration < this->max_brake_speed) {
         RCLCPP_WARN(this->get_logger(), "Brake %f is less than the max brake value!", state->acceleration);
         return false;
-    } else if (state->speed < 0) {
+    } else if (state->speed < -0) {
         RCLCPP_WARN(this->get_logger(), "Encoder speed %f is less than 0!", state->speed);
         return false;
     } else if (state->speed == INFINITY) {
